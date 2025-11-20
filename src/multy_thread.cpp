@@ -97,7 +97,7 @@ vector<QuantizedBlock> MultiThreadBlockProcessor::processBlocks(const YCbCrImage
     const int width  = image.getWidth();
     const int height = image.getHeight();
 
-    // Кол-во блоков по каждой компоненте (как в последовательной версии)
+    // ÐšÐ¾Ð»-Ð²Ð¾ Ð±Ð»Ð¾ÐºÐ¾Ð² Ð¿Ð¾ ÐºÐ°Ð¶Ð´Ð¾Ð¹ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ðµ (ÐºÐ°Ðº Ð² Ð¿Ð¾ÑÐ»ÐµÐ´Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒÐ½Ð¾Ð¹ Ð²ÐµÑ€ÑÐ¸Ð¸)
     int nxY = (width  + 7)  / 8;
     int nyY = (height + 7)  / 8;
     int yBlocksCount = nxY * nyY;
@@ -108,7 +108,7 @@ vector<QuantizedBlock> MultiThreadBlockProcessor::processBlocks(const YCbCrImage
     int crBlocksCount = nxC * nyC;
 
     const int totalBlocks = yBlocksCount + cbBlocksCount + crBlocksCount;
-    // Храним временно в optional, т.к. у QuantizedBlock нет дефолтного конструктора
+    // Ð¥Ñ€Ð°Ð½Ð¸Ð¼ Ð²Ñ€ÐµÐ¼ÐµÐ½Ð½Ð¾ Ð² optional, Ñ‚.Ðº. Ñƒ QuantizedBlock Ð½ÐµÑ‚ Ð´ÐµÑ„Ð¾Ð»Ñ‚Ð½Ð¾Ð³Ð¾ ÐºÐ¾Ð½ÑÑ‚Ñ€ÑƒÐºÑ‚Ð¾Ñ€Ð°
     vector<optional<QuantizedBlock>> tmpBlocks(totalBlocks);
 
     auto processComponent = [&](int component,
@@ -148,8 +148,8 @@ vector<QuantizedBlock> MultiThreadBlockProcessor::processBlocks(const YCbCrImage
         }
     };
 
-    // Порядок тот же, что и в SequentialBlockProcessor:
-    // сначала все Y, затем все Cb, затем все Cr.
+    // ÐŸÐ¾Ñ€ÑÐ´Ð¾Ðº Ñ‚Ð¾Ñ‚ Ð¶Ðµ, Ñ‡Ñ‚Ð¾ Ð¸ Ð² SequentialBlockProcessor:
+    // ÑÐ½Ð°Ñ‡Ð°Ð»Ð° Ð²ÑÐµ Y, Ð·Ð°Ñ‚ÐµÐ¼ Ð²ÑÐµ Cb, Ð·Ð°Ñ‚ÐµÐ¼ Ð²ÑÐµ Cr.
     processComponent(0, nxY, nyY, 8,  0);
     processComponent(1, nxC, nyC, 16, yBlocksCount);
     processComponent(2, nxC, nyC, 16, yBlocksCount + cbBlocksCount);
@@ -157,7 +157,7 @@ vector<QuantizedBlock> MultiThreadBlockProcessor::processBlocks(const YCbCrImage
     vector<QuantizedBlock> blocks;
     blocks.reserve(totalBlocks);
     for (auto &opt : tmpBlocks) {
-        // Все элементы должны быть заполнены
+        // Ð’ÑÐµ ÑÐ»ÐµÐ¼ÐµÐ½Ñ‚Ñ‹ Ð´Ð¾Ð»Ð¶Ð½Ñ‹ Ð±Ñ‹Ñ‚ÑŒ Ð·Ð°Ð¿Ð¾Ð»Ð½ÐµÐ½Ñ‹
         blocks.push_back(move(opt.value()));
     }
 

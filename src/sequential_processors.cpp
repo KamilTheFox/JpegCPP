@@ -114,14 +114,12 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
                                                 int width, int height, 
                                                 const vector<vector<int>>& quantTable) {
     if (blocks.empty()) {
-        return JpegEncodedData{
-            vector<unsigned char>(),
-            unordered_map<int, pair<int, int>>(),
-            unordered_map<int, pair<int, int>>(),
-            quantTable,
-            width,
-            height
-        };
+        JpegEncodedData result;
+        result.compressedData = vector<unsigned char>();
+        result.quantizationTable = quantTable;
+        result.width = width;
+        result.height = height;
+        return result;
     }
     
     // Ð Ð°Ð·Ð´ÐµÐ»ÑÐµÐ¼ Ð±Ð»Ð¾ÐºÐ¸ Ð¿Ð¾ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ð°Ð¼
@@ -169,14 +167,20 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
         }
     }
     
-    return JpegEncodedData{
-        writer.toArray(),
-        yTable, // DC table Ð´Ð»Ñ Y
-        yTable, // AC table Ð´Ð»Ñ Y (ÑƒÐ¿Ñ€Ð¾Ñ‰ÐµÐ½Ð¸Ðµ)
-        quantTable,
-        width,
-        height
-    };
+    JpegEncodedData result;
+    result.compressedData = writer.toArray();
+    result.yHuffmanTable = yTable;
+    result.cbHuffmanTable = cbTable;
+    result.crHuffmanTable = crTable;
+    result.dcLuminanceTable = yTable;
+    result.acLuminanceTable = yTable;
+    result.quantizationTable = quantTable;
+    result.width = width;
+    result.height = height;
+    result.yBlockCount = static_cast<int>(yBlocks.size());
+    result.cbBlockCount = static_cast<int>(cbBlocks.size());
+    result.crBlockCount = static_cast<int>(crBlocks.size());
+    return result;
 }
 
 unordered_map<int, pair<int, int>> SequentialHuffmanEncoder::buildHuffmanTable(

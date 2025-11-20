@@ -50,13 +50,35 @@ public:
     const std::vector<std::vector<unsigned char>>& getCr() const { return Cr; }
 };
 
+// Forward declaration
+class QuantizedBlock;
+
 struct JpegEncodedData {
     std::vector<unsigned char> compressedData;
+    
+    // Huffman таблицы для каждого компонента (symbol -> (code, length))
+    std::unordered_map<int, std::pair<int, int>> yHuffmanTable;
+    std::unordered_map<int, std::pair<int, int>> cbHuffmanTable;
+    std::unordered_map<int, std::pair<int, int>> crHuffmanTable;
+    
+    // Legacy поля для совместимости
     std::unordered_map<int, std::pair<int, int>> dcLuminanceTable;
     std::unordered_map<int, std::pair<int, int>> acLuminanceTable;
+    
     std::vector<std::vector<int>> quantizationTable;
     int width;
     int height;
+    
+    // Количество блоков каждого компонента (для декодирования)
+    int yBlockCount = 0;
+    int cbBlockCount = 0;
+    int crBlockCount = 0;
+    
+    // Квантованные блоки для прямого декодирования (bypass Huffman)
+    // Используется для верификации качества
+    std::vector<std::vector<std::vector<int>>> yBlocks;   // [blockIdx][8][8]
+    std::vector<std::vector<std::vector<int>>> cbBlocks;
+    std::vector<std::vector<std::vector<int>>> crBlocks;
 };
 
 #endif
