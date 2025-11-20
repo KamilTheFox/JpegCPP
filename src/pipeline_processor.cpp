@@ -1,5 +1,5 @@
 // pipeline_processors.cpp
-#include "pipeline_processors.h"
+#include "pipeline_processor.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -14,7 +14,7 @@ PipelineBlockProcessor::PipelineBlockProcessor(unique_ptr<IDctTransform> dctTran
 
 vector<QuantizedBlock> PipelineBlockProcessor::processBlocks(const YCbCrImage& image) {
     // ?????????? ???????? ??? ?????????
-    ProcessingPipeline pipeline(move(dct), move(quantizer));
+    ProcessingPipeline pipeline(move(dct), move(quantizer), 6, NULL);
     return pipeline.processImage(image);
 }
 
@@ -309,8 +309,10 @@ vector<vector<int>> PipelineQuantizer::generateQuantizationTable(int quality) {
 // ProcessingPipeline
 ProcessingPipeline::ProcessingPipeline(unique_ptr<IDctTransform> dctTransform,
                                      unique_ptr<IQuantizer> quantizerObj,
-                                     int threadCount)
-    : dct(move(dctTransform)), quantizer(move(quantizerObj)), numThreads(threadCount) {}
+                                     int threadCount,
+                                    YCbCrImage* image = nullptr)
+    : dct(move(dctTransform)), quantizer(move(quantizerObj)), numThreads(threadCount),
+          ycbcrImage(image) {}
 
 ProcessingPipeline::~ProcessingPipeline() {
     // ????????????? ????? ??????????
@@ -330,7 +332,7 @@ ProcessingPipeline::~ProcessingPipeline() {
 }
 
 vector<QuantizedBlock> ProcessingPipeline::processImage(const YCbCrImage& image) {
-    ycbcrImage = image;
+    ycbcrImage = &image;
     finalBlocks.clear();
     
     int width = image.getWidth();

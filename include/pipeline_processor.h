@@ -112,7 +112,7 @@ private:
         mutex mtx;
     };
 
-    YCbCrImage ycbcrImage;
+    const YCbCrImage* ycbcrImage;
     vector<QuantizedBlock> finalBlocks;
     
     // ??????? ??? ???????? ?????? ????? ???????
@@ -140,12 +140,10 @@ private:
     void processBlockBatch(int startX, int startY, int endX, int endY, int component, int blockSize);
 
 public:
-    ProcessingPipeline(unique_ptr<IDctTransform> dctTransform,
-                      unique_ptr<IQuantizer> quantizerObj,
-                      int threadCount = thread::hardware_concurrency());
     ~ProcessingPipeline();
     
     vector<QuantizedBlock> processImage(const YCbCrImage& image);
+    ProcessingPipeline(unique_ptr<IDctTransform> dctTransform, unique_ptr<IQuantizer> quantizerObj, int threadCount, YCbCrImage *image);
 };
 
 // ??????????? JPEG ???????
