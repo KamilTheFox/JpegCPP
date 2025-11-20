@@ -5,12 +5,12 @@ BINDIR = bin
 SRCDIR = src
 INCDIR = include
 
-# Ищем все .cpp файлы в папке src
+# Исходники
 SOURCES = $(wildcard $(SRCDIR)/*.cpp)
 OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 TARGET = $(BINDIR)/jpeg_compressor
 
-# Создание директорий если их нет
+# Создание директорий
 $(shell mkdir -p $(OBJDIR) $(BINDIR))
 
 all: $(TARGET)
@@ -18,17 +18,17 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET) -lpthread
 
-# Правило компиляции для файлов из src
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Зависимости (обновляем пути к заголовочным файлам в include)
-$(OBJDIR)/main.o: $(INCDIR)/sequential_processors.h $(INCDIR)/pipeline_processor.h $(INCDIR)/interfaces.h $(INCDIR)/image_types.h
+# Зависимости
+$(OBJDIR)/main.o: $(INCDIR)/sequential_processors.h $(INCDIR)/pipeline_processor.h $(INCDIR)/interfaces.h $(INCDIR)/image_types.h $(INCDIR)/OpenMPBlockProcessor.h $(INCDIR)/OpenMPDctTransform.h $(INCDIR)/OpenMPQuantizer.h $(INCDIR)/multy_thread.h
 $(OBJDIR)/sequential_processors.o: $(INCDIR)/sequential_processors.h $(INCDIR)/interfaces.h $(INCDIR)/dct_math.h $(INCDIR)/color_math.h $(INCDIR)/huffman_math.h $(INCDIR)/bit_writer.h $(INCDIR)/quantized_block.h $(INCDIR)/image_types.h
-$(OBJDIR)/pipeline_processor.o: $(INCDIR)/pipeline_processor.h $(INCDIR)/interfaces.h $(INCDIR)/dct_math.h $(INCDIR)/color_math.h $(INCDIR)/huffman_math.h $(INCDIR)/bit_writer.h $(INCDIR)/quantized_block.h $(INCDIR)/image_types.h
+$(OBJDIR)/pipeline_processor.o: $(INCDIR)/pipeline_processor.h $(INCDIR)/interfaces.h
 $(OBJDIR)/OpenMPBlockProcessor.o: $(INCDIR)/OpenMPBlockProcessor.h $(INCDIR)/interfaces.h $(INCDIR)/OpenMPDctTransform.h $(INCDIR)/OpenMPQuantizer.h $(INCDIR)/image_types.h $(INCDIR)/quantized_block.h
 $(OBJDIR)/OpenMPDctTransform.o: $(INCDIR)/OpenMPDctTransform.h $(INCDIR)/interfaces.h $(INCDIR)/dct_math.h
 $(OBJDIR)/OpenMPQuantizer.o: $(INCDIR)/OpenMPQuantizer.h $(INCDIR)/interfaces.h
+$(OBJDIR)/multy_thread.o: $(INCDIR)/multy_thread.h $(INCDIR)/interfaces.h $(INCDIR)/color_math.h $(INCDIR)/image_types.h $(INCDIR)/quantized_block.h
 $(OBJDIR)/bit_writer.o: $(INCDIR)/bit_writer.h
 $(OBJDIR)/color_math.o: $(INCDIR)/color_math.h
 $(OBJDIR)/dct_math.o: $(INCDIR)/dct_math.h

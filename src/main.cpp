@@ -7,215 +7,199 @@
 #include "OpenMPDctTransform.h"
 #include "OpenMPQuantizer.h"
 #include "pipeline_processor.h"
+#include "multy_thread.h"
 
 using namespace std;
 using namespace std::chrono;
 
 struct BenchmarkResult {
     string name;
-    long long timeMs;
-    size_t compressedSize;
-    double compressionRatio;
+    long long totalTimeMs;
+    long long avgTimeMs;
+    size_t avgCompressedSize;
+    double avgCompressionRatio;
 };
 
 void printResults(const vector<BenchmarkResult>& results) {
     cout << "\n=== Performance Comparison ===" << endl;
-    cout << left << setw(45) << "Method" 
-         << right << setw(12) << "Time (ms)" 
+    cout << left << setw(50) << "Method" 
+         << right << setw(12) << "Avg (ms)" 
+         << setw(12) << "Total (ms)"
          << setw(15) << "Size (bytes)" 
          << setw(12) << "Ratio" 
          << setw(12) << "Speedup" << endl;
-    cout << string(96, '-') << endl;
+    cout << string(113, '-') << endl;
     
-    long long baselineTime = results[0].timeMs;
+    long long baselineTime = results[0].avgTimeMs;
     
     for (const auto& r : results) {
-        double speedup = static_cast<double>(baselineTime) / r.timeMs;
-        cout << left << setw(45) << r.name
-             << right << setw(12) << r.timeMs
-             << setw(15) << r.compressedSize
-             << setw(12) << fixed << setprecision(2) << r.compressionRatio
+        double speedup = static_cast<double>(baselineTime) / r.avgTimeMs;
+        cout << left << setw(50) << r.name
+             << right << setw(12) << r.avgTimeMs
+             << setw(12) << r.totalTimeMs
+             << setw(15) << r.avgCompressedSize
+             << setw(12) << fixed << setprecision(2) << r.avgCompressionRatio
              << setw(12) << fixed << setprecision(2) << speedup << "x" << endl;
     }
 }
 
-BenchmarkResult benchmarkSequential(const RgbImage& image, const string& name) {
-    auto colorConverter = make_unique<SequentialColorConverter>();
-    auto dctTransform = make_unique<SequentialDctTransform>();
-    auto quantizer = make_unique<SequentialQuantizer>(75);
-    auto blockProcessor = make_unique<SequentialBlockProcessor>(
-        move(dctTransform), move(quantizer));
-    auto huffmanEncoder = make_unique<SequentialHuffmanEncoder>();
+template<typename BenchFunc>
+BenchmarkResult runBenchmark(const string& name, const vector<RgbImage>& images, BenchFunc func) {
+    cout << "Running " << name << "..." << flush;
     
-    JpegEncoder encoder(move(colorConverter), move(blockProcessor), move(huffmanEncoder));
+    vector<long long> times;
+    vector<size_t> sizes;
+    vector<double> ratios;
     
-    auto start = high_resolution_clock::now();
-    auto result = encoder.encode(image);
-    auto end = high_resolution_clock::now();
+    auto totalStart = high_resolution_clock::now();
     
-    size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
+    for (const auto& image : images) {
+        auto start = high_resolution_clock::now();
+        auto result = func(image);
+        auto end = high_resolution_clock::now();
+        
+        long long time = duration_cast<milliseconds>(end - start).count();
+        size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
+        
+        times.push_back(time);
+        sizes.push_back(result.compressedData.size());
+        ratios.push_back(static_cast<double>(originalSize) / result.compressedData.size());
+    }
     
-    return BenchmarkResult{
-        name,
-        duration_cast<milliseconds>(end - start).count(),
-        result.compressedData.size(),
-        static_cast<double>(originalSize) / result.compressedData.size()
-    };
-}
-
-BenchmarkResult benchmarkOpenMP(const RgbImage& image, const string& name) {
-    auto colorConverter = make_unique<SequentialColorConverter>();
-    auto dctTransform = make_unique<OpenMPDctTransform>();
-    auto quantizer = make_unique<OpenMPQuantizer>(75);
-    auto blockProcessor = make_unique<OpenMPBlockProcessor>(
-        move(dctTransform), move(quantizer));
-    auto huffmanEncoder = make_unique<SequentialHuffmanEncoder>();
+    auto totalEnd = high_resolution_clock::now();
+    long long totalTime = duration_cast<milliseconds>(totalEnd - totalStart).count();
     
-    JpegEncoder encoder(move(colorConverter), move(blockProcessor), move(huffmanEncoder));
+    long long avgTime = totalTime / images.size();
+    size_t avgSize = 0;
+    double avgRatio = 0;
     
-    auto start = high_resolution_clock::now();
-    auto result = encoder.encode(image);
-    auto end = high_resolution_clock::now();
+    for (size_t i = 0; i < sizes.size(); i++) {
+        avgSize += sizes[i];
+        avgRatio += ratios[i];
+    }
+    avgSize /= sizes.size();
+    avgRatio /= ratios.size();
     
-    size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
+    cout << " Done (" << totalTime << " ms total, " << avgTime << " ms avg)" << endl;
     
-    return BenchmarkResult{
-        name,
-        duration_cast<milliseconds>(end - start).count(),
-        result.compressedData.size(),
-        static_cast<double>(originalSize) / result.compressedData.size()
-    };
-}
-
-BenchmarkResult benchmarkPipeline(const RgbImage& image, const string& name, int threadCount) {
-    auto colorConverter = make_unique<PipelineColorConverter>();
-    auto dctTransform = make_unique<PipelineDctTransform>();
-    auto quantizer = make_unique<PipelineQuantizer>(75);
-    auto huffmanEncoder = make_unique<PipelineHuffmanEncoder>();
-    
-    PipelineJpegEncoder encoder(
-        move(colorConverter),
-        move(dctTransform),
-        move(quantizer),
-        move(huffmanEncoder),
-        threadCount
-    );
-    
-    auto start = high_resolution_clock::now();
-    auto result = encoder.encode(image);
-    auto end = high_resolution_clock::now();
-    
-    size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
-    
-    return BenchmarkResult{
-        name,
-        duration_cast<milliseconds>(end - start).count(),
-        result.compressedData.size(),
-        static_cast<double>(originalSize) / result.compressedData.size()
-    };
-}
-
-BenchmarkResult benchmarkMix1(const RgbImage& image, const string& name) {
-    // Mix 1: Pipeline ColorConverter + OpenMP BlockProcessor
-    auto colorConverter = make_unique<PipelineColorConverter>();
-    auto dctTransform = make_unique<OpenMPDctTransform>();
-    auto quantizer = make_unique<OpenMPQuantizer>(75);
-    auto blockProcessor = make_unique<OpenMPBlockProcessor>(
-        move(dctTransform), move(quantizer));
-    auto huffmanEncoder = make_unique<SequentialHuffmanEncoder>();
-    
-    JpegEncoder encoder(move(colorConverter), move(blockProcessor), move(huffmanEncoder));
-    
-    auto start = high_resolution_clock::now();
-    auto result = encoder.encode(image);
-    auto end = high_resolution_clock::now();
-    
-    size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
-    
-    return BenchmarkResult{
-        name,
-        duration_cast<milliseconds>(end - start).count(),
-        result.compressedData.size(),
-        static_cast<double>(originalSize) / result.compressedData.size()
-    };
-}
-
-BenchmarkResult benchmarkMix2(const RgbImage& image, const string& name) {
-    // Mix 2: Sequential ColorConverter + Pipeline BlockProcessor
-    auto colorConverter = make_unique<SequentialColorConverter>();
-    auto dctTransform = make_unique<PipelineDctTransform>();
-    auto quantizer = make_unique<PipelineQuantizer>(75);
-    auto blockProcessor = make_unique<PipelineBlockProcessor>(
-        move(dctTransform), move(quantizer));
-    auto huffmanEncoder = make_unique<SequentialHuffmanEncoder>();
-    
-    JpegEncoder encoder(move(colorConverter), move(blockProcessor), move(huffmanEncoder));
-    
-    auto start = high_resolution_clock::now();
-    auto result = encoder.encode(image);
-    auto end = high_resolution_clock::now();
-    
-    size_t originalSize = static_cast<size_t>(image.getWidth()) * image.getHeight() * 3;
-    
-    return BenchmarkResult{
-        name,
-        duration_cast<milliseconds>(end - start).count(),
-        result.compressedData.size(),
-        static_cast<double>(originalSize) / result.compressedData.size()
-    };
+    return BenchmarkResult{name, totalTime, avgTime, avgSize, avgRatio};
 }
 
 int main() {
-    cout << "JPEG Compressor - Parallelization Methods Comparison" << endl;
+    cout << "JPEG Compressor - Aggressive Parallelization Benchmark" << endl;
     cout << "Hardware threads available: " << thread::hardware_concurrency() << endl;
+    cout << "Images per test: 10" << endl;
     
     vector<pair<int, int>> testSizes = {
-        {256, 256},
         {512, 512},
-        {1024, 1024}
+        {1024, 1024},
+        {2048, 2048}
     };
     
     for (const auto& [width, height] : testSizes) {
-        cout << "\n" << string(96, '=') << endl;
-        cout << "Testing " << width << "x" << height << " image" << endl;
-        cout << string(96, '=') << endl;
+        cout << "\n" << string(113, '=') << endl;
+        cout << "Testing " << width << "x" << height << " image (10 iterations)" << endl;
+        cout << string(113, '=') << endl;
         
-        auto testImage = RgbImage::createTestImage(width, height);
+        // Создаем 10 разных изображений
+        vector<RgbImage> images;
+        for (int i = 0; i < 10; i++) {
+            images.push_back(RgbImage::createTestImage(width, height));
+        }
+        
         vector<BenchmarkResult> results;
         
         try {
             // 1. Sequential baseline
-            cout << "Running Sequential (baseline)..." << flush;
-            results.push_back(benchmarkSequential(testImage, "Sequential (baseline)"));
-            cout << " Done (" << results.back().timeMs << " ms)" << endl;
+            results.push_back(runBenchmark(
+                "1. Sequential (baseline)",
+                images,
+                [](const RgbImage& img) {
+                    auto colorConv = make_unique<SequentialColorConverter>();
+                    auto dct = make_unique<SequentialDctTransform>();
+                    auto quant = make_unique<SequentialQuantizer>(75);
+                    auto blockProc = make_unique<SequentialBlockProcessor>(move(dct), move(quant));
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
+                }
+            ));
             
             // 2. OpenMP
-            cout << "Running OpenMP..." << flush;
-            results.push_back(benchmarkOpenMP(testImage, "OpenMP (DCT + Quantizer)"));
-            cout << " Done (" << results.back().timeMs << " ms)" << endl;
-            
-            // 3. Pipeline with different thread counts
-            vector<int> threadCounts = {2, 4, 8};
-            for (int tc : threadCounts) {
-                if (tc <= thread::hardware_concurrency()) {
-                    cout << "Running Pipeline (" << tc << " threads)..." << flush;
-                    results.push_back(benchmarkPipeline(testImage, 
-                        "Pipeline (" + to_string(tc) + " threads)", tc));
-                    cout << " Done (" << results.back().timeMs << " ms)" << endl;
+            results.push_back(runBenchmark(
+                "2. OpenMP (DCT + Quantizer)",
+                images,
+                [](const RgbImage& img) {
+                    auto colorConv = make_unique<SequentialColorConverter>();
+                    auto dct = make_unique<OpenMPDctTransform>();
+                    auto quant = make_unique<OpenMPQuantizer>(75);
+                    auto blockProc = make_unique<OpenMPBlockProcessor>(move(dct), move(quant));
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
                 }
-            }
+            ));
             
-            // 4. Mix 1: Pipeline ColorConv + OpenMP
-            cout << "Running Mix 1 (Pipeline ColorConv + OpenMP)..." << flush;
-            results.push_back(benchmarkMix1(testImage, 
-                "Mix: Pipeline ColorConv + OpenMP"));
-            cout << " Done (" << results.back().timeMs << " ms)" << endl;
+            // 3. MultiThread
+            int threads = thread::hardware_concurrency();
+            results.push_back(runBenchmark(
+                "3. MultiThread (" + to_string(threads) + " threads)",
+                images,
+                [threads](const RgbImage& img) {
+                    auto colorConv = make_unique<MultiThreadColorConverter>(threads);
+                    auto dct = make_unique<SequentialDctTransform>();
+                    auto quant = make_unique<SequentialQuantizer>(75);
+                    auto blockProc = make_unique<MultiThreadBlockProcessor>(move(dct), move(quant), threads);
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
+                }
+            ));
             
-            // 5. Mix 2: Sequential ColorConv + Pipeline BlockProc
-            cout << "Running Mix 2 (Sequential + Pipeline BlockProc)..." << flush;
-            results.push_back(benchmarkMix2(testImage, 
-                "Mix: Sequential + Pipeline BlockProc"));
-            cout << " Done (" << results.back().timeMs << " ms)" << endl;
+            // 4. Pipeline
+            results.push_back(runBenchmark(
+                "4. Pipeline (" + to_string(threads) + " threads)",
+                images,
+                [threads](const RgbImage& img) {
+                    auto colorConv = make_unique<SequentialColorConverter>();
+                    auto dct = make_unique<SequentialDctTransform>();
+                    auto quant = make_unique<SequentialQuantizer>(75);
+                    auto blockProc = make_unique<PipelineBlockProcessor>(move(dct), move(quant), threads);
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
+                }
+            ));
+            
+            // 5. Mix: MultiThread ColorConv + OpenMP BlockProc
+            results.push_back(runBenchmark(
+                "5. Mix: MultiThread ColorConv + OpenMP",
+                images,
+                [threads](const RgbImage& img) {
+                    auto colorConv = make_unique<MultiThreadColorConverter>(threads);
+                    auto dct = make_unique<OpenMPDctTransform>();
+                    auto quant = make_unique<OpenMPQuantizer>(75);
+                    auto blockProc = make_unique<OpenMPBlockProcessor>(move(dct), move(quant));
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
+                }
+            ));
+            
+            // 6. Mix: MultiThread ColorConv + Pipeline BlockProc
+            results.push_back(runBenchmark(
+                "6. Mix: MultiThread ColorConv + Pipeline",
+                images,
+                [threads](const RgbImage& img) {
+                    auto colorConv = make_unique<MultiThreadColorConverter>(threads);
+                    auto dct = make_unique<SequentialDctTransform>();
+                    auto quant = make_unique<SequentialQuantizer>(75);
+                    auto blockProc = make_unique<PipelineBlockProcessor>(move(dct), move(quant), threads);
+                    auto huffman = make_unique<SequentialHuffmanEncoder>();
+                    JpegEncoder encoder(move(colorConv), move(blockProc), move(huffman));
+                    return encoder.encode(img);
+                }
+            ));
             
             printResults(results);
             
@@ -224,9 +208,9 @@ int main() {
         }
     }
     
-    cout << "\n" << string(96, '=') << endl;
+    cout << "\n" << string(113, '=') << endl;
     cout << "Benchmarks completed!" << endl;
-    cout << string(96, '=') << endl;
+    cout << string(113, '=') << endl;
     
     return 0;
 }
