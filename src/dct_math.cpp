@@ -1,6 +1,7 @@
 #include "dct_math.h"
 #include <cmath>
 #include <vector>
+#include <algorithm> 
 
 using namespace std;
 
