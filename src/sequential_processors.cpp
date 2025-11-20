@@ -5,7 +5,7 @@
 
 using namespace std;
 
-// SequentialBlockProcessor конструктор
+// SequentialBlockProcessor ÐºÐ¾Ð½ÑÑ‚Ñ€ÑƒÐºÑ‚Ð¾Ñ€
 SequentialBlockProcessor::SequentialBlockProcessor(unique_ptr<IDctTransform> dctTransform, 
                                                  unique_ptr<IQuantizer> quantizer)
     : dct(move(dctTransform)), quantizer(move(quantizer)) {}
@@ -16,7 +16,7 @@ vector<QuantizedBlock> SequentialBlockProcessor::processBlocks(const YCbCrImage&
     int width = image.getWidth();
     int height = image.getHeight();
     
-    // Обрабатываем Y (luminance) компоненты - полное разрешение
+    // ÐžÐ±Ñ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°ÐµÐ¼ Y (luminance) ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹ - Ð¿Ð¾Ð»Ð½Ð¾Ðµ Ñ€Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ
     for (int by = 0; by < height; by += 8) {
         for (int bx = 0; bx < width; bx += 8) {
             // Y block (luminance)
@@ -27,7 +27,7 @@ vector<QuantizedBlock> SequentialBlockProcessor::processBlocks(const YCbCrImage&
         }
     }
     
-    // Обрабатываем Cb компоненты - субсэмплинг 2x2
+    // ÐžÐ±Ñ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°ÐµÐ¼ Cb ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹ - ÑÑƒÐ±ÑÑÐ¼Ð¿Ð»Ð¸Ð½Ð³ 2x2
     for (int by = 0; by < height; by += 16) {
         for (int bx = 0; bx < width; bx += 16) {
             // Cb block (chroma blue)
@@ -38,7 +38,7 @@ vector<QuantizedBlock> SequentialBlockProcessor::processBlocks(const YCbCrImage&
         }
     }
     
-    // Обрабатываем Cr компоненты - субсэмплинг 2x2  
+    // ÐžÐ±Ñ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°ÐµÐ¼ Cr ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹ - ÑÑƒÐ±ÑÑÐ¼Ð¿Ð»Ð¸Ð½Ð³ 2x2  
     for (int by = 0; by < height; by += 16) {
         for (int bx = 0; bx < width; bx += 16) {
             // Cr block (chroma red)
@@ -124,7 +124,7 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
         };
     }
     
-    // Разделяем блоки по компонентам
+    // Ð Ð°Ð·Ð´ÐµÐ»ÑÐµÐ¼ Ð±Ð»Ð¾ÐºÐ¸ Ð¿Ð¾ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ð°Ð¼
     vector<QuantizedBlock> yBlocks, cbBlocks, crBlocks;
     for (const auto& block : blocks) {
         switch (block.getComponent()) {
@@ -134,15 +134,15 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
         }
     }
     
-    // Создаем отдельные таблицы Хаффмана для каждого компонента
+    // Ð¡Ð¾Ð·Ð´Ð°ÐµÐ¼ Ð¾Ñ‚Ð´ÐµÐ»ÑŒÐ½Ñ‹Ðµ Ñ‚Ð°Ð±Ð»Ð¸Ñ†Ñ‹ Ð¥Ð°Ñ„Ñ„Ð¼Ð°Ð½Ð° Ð´Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ð°
     auto yTable = buildHuffmanTable(yBlocks);
     auto cbTable = buildHuffmanTable(cbBlocks);
     auto crTable = buildHuffmanTable(crBlocks);
     
-    // Кодируем все блоки
+    // ÐšÐ¾Ð´Ð¸Ñ€ÑƒÐµÐ¼ Ð²ÑÐµ Ð±Ð»Ð¾ÐºÐ¸
     BitWriter writer;
     
-    // Кодируем Y компоненты
+    // ÐšÐ¾Ð´Ð¸Ñ€ÑƒÐµÐ¼ Y ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹
     for (const auto& block : yBlocks) {
         auto zigzag = block.getZigzagOrder();
         for (auto coef : zigzag) {
@@ -151,7 +151,7 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
         }
     }
     
-    // Кодируем Cb компоненты
+    // ÐšÐ¾Ð´Ð¸Ñ€ÑƒÐµÐ¼ Cb ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹
     for (const auto& block : cbBlocks) {
         auto zigzag = block.getZigzagOrder();
         for (auto coef : zigzag) {
@@ -160,7 +160,7 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
         }
     }
     
-    // Кодируем Cr компоненты
+    // ÐšÐ¾Ð´Ð¸Ñ€ÑƒÐµÐ¼ Cr ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ñ‹
     for (const auto& block : crBlocks) {
         auto zigzag = block.getZigzagOrder();
         for (auto coef : zigzag) {
@@ -171,8 +171,8 @@ JpegEncodedData SequentialHuffmanEncoder::encode(const vector<QuantizedBlock>& b
     
     return JpegEncodedData{
         writer.toArray(),
-        yTable, // DC table для Y
-        yTable, // AC table для Y (упрощение)
+        yTable, // DC table Ð´Ð»Ñ Y
+        yTable, // AC table Ð´Ð»Ñ Y (ÑƒÐ¿Ñ€Ð¾Ñ‰ÐµÐ½Ð¸Ðµ)
         quantTable,
         width,
         height

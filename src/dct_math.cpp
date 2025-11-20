@@ -1,7 +1,7 @@
 #include "dct_math.h"
 #include <cmath>
 #include <vector>
-#include <algorithm> 
+#include <omp.h>
 
 using namespace std;
 
@@ -25,11 +25,15 @@ namespace DctMath {
     
     double computeDctCoefficient(const vector<vector<double>>& block, int u, int v) {
         double sum = 0.0;
+        
+        // SIMD векторизация внутренних циклов
+        #pragma omp simd reduction(+:sum) collapse(2)
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; y++) {
                 sum += block[x][y] * cosineCache[x][u] * cosineCache[y][v];
             }
         }
+        
         return 0.25 * alpha(u) * alpha(v) * sum;
     }
 }

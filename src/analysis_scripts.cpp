@@ -1,4 +1,5 @@
 #include "analysis_scripts.h"
+#include "jpeg_decoder.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm> 
@@ -49,7 +50,7 @@ void AnalysisScripts::qualitySweepTest(int width, int height) {
         double ratio = ImageMetrics::compressionRatio(original, encodedData.compressedData.size());
         
         cout << quality << "\t" 
-             << encodedData.compressedData.size() << "\t"
+             << encodedData.compressedData.size() << "\t\t"
              << fixed << setprecision(2) << ratio << "\t"
              << setprecision(2) << psnr << "\t\t"
              << setprecision(3) << ssim << endl;
