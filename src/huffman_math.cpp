@@ -35,7 +35,7 @@ namespace HuffmanMath {
             priorityQueue.push(node);
         }
         
-        // Если только один символ - создаем фиктивный корень
+        // Ð•ÑÐ»Ð¸ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¾Ð´Ð¸Ð½ ÑÐ¸Ð¼Ð²Ð¾Ð» - ÑÐ¾Ð·Ð´Ð°ÐµÐ¼ Ñ„Ð¸ÐºÑ‚Ð¸Ð²Ð½Ñ‹Ð¹ ÐºÐ¾Ñ€ÐµÐ½ÑŒ
         if (priorityQueue.size() == 1) {
             auto single = priorityQueue.top();
             priorityQueue.pop();

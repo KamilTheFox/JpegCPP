@@ -18,38 +18,26 @@ vector<QuantizedBlock> OpenMPBlockProcessor::processBlocks(const YCbCrImage& ima
     vector<tuple<int, int, int>> blockInfo; // (x, y, component)
     
     // Y компоненты
-    #pragma omp parallel for collapse(2)
     for (int by = 0; by < height; by += 8) {
         for (int bx = 0; bx < width; bx += 8) {
-            #pragma omp critical
-            {
-                allBlocks.push_back(extractBlock(image, bx, by, 0));
-                blockInfo.emplace_back(bx / 8, by / 8, 0);
-            }
+            allBlocks.push_back(extractBlock(image, bx, by, 0));
+            blockInfo.emplace_back(bx / 8, by / 8, 0);
         }
     }
     
     // Cb компоненты
-    #pragma omp parallel for collapse(2)
     for (int by = 0; by < height; by += 16) {
         for (int bx = 0; bx < width; bx += 16) {
-            #pragma omp critical
-            {
-                allBlocks.push_back(extractBlock(image, bx, by, 1));
-                blockInfo.emplace_back(bx / 16, by / 16, 1);
-            }
+            allBlocks.push_back(extractBlock(image, bx, by, 1));
+            blockInfo.emplace_back(bx / 16, by / 16, 1);
         }
     }
     
     // Cr компоненты
-    #pragma omp parallel for collapse(2)
     for (int by = 0; by < height; by += 16) {
         for (int bx = 0; bx < width; bx += 16) {
-            #pragma omp critical
-            {
-                allBlocks.push_back(extractBlock(image, bx, by, 2));
-                blockInfo.emplace_back(bx / 16, by / 16, 2);
-            }
+            allBlocks.push_back(extractBlock(image, bx, by, 2));
+            blockInfo.emplace_back(bx / 16, by / 16, 2);
         }
     }
     

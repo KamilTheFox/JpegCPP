@@ -7,6 +7,8 @@
 class OpenMPQuantizer : public IQuantizer {
 private:
     std::vector<std::vector<int>> quantizationTable;
+    
+    std::vector<std::vector<int>> generateQuantizationTable(int quality);
 
 public:
     OpenMPQuantizer(int quality = 50);
@@ -19,7 +21,6 @@ public:
     
     static std::vector<std::vector<int>> defaultQuantizationTable();
     const std::vector<std::vector<int>>& getQuantizationTable() const { return quantizationTable; }
-    vector<vector<int>> OpenMPQuantizer::generateQuantizationTable(int quality);
 };
 
 #endif

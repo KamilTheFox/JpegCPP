@@ -11,8 +11,8 @@ OpenMPQuantizer::OpenMPQuantizer(int quality)
 vector<vector<int>> OpenMPQuantizer::quantize(const vector<vector<double>>& dctBlock) {
     vector<vector<int>> result(8, vector<int>(8));
     
-    // Параллелизируем оба измерения
-    #pragma omp parallel for collapse(2)
+    // Параллелизируем оба измерения с SIMD
+    #pragma omp parallel for simd collapse(2)
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             result[i][j] = static_cast<int>(round(
@@ -29,14 +29,14 @@ OpenMPQuantizer::quantizeBatch(const vector<vector<vector<double>>>& dctBlocks,
                               const vector<vector<int>>& quantTable) {
     vector<vector<vector<int>>> results(dctBlocks.size());
     
-    // Параллелизируем по блокам
-    #pragma omp parallel for
+    // Параллелизируем только по блокам
+    #pragma omp parallel for schedule(dynamic)
     for (size_t blockIdx = 0; blockIdx < dctBlocks.size(); blockIdx++) {
         vector<vector<int>> result(8, vector<int>(8));
         const auto& block = dctBlocks[blockIdx];
         
-        // Параллелизируем внутри блока
-        #pragma omp parallel for collapse(2)
+        // Используем SIMD внутри блока
+        #pragma omp simd collapse(2)
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 result[i][j] = static_cast<int>(round(
@@ -70,7 +70,7 @@ vector<vector<int>> OpenMPQuantizer::generateQuantizationTable(int quality) {
     
     double scale = quality < 50 ? 5000.0 / quality : 200.0 - 2 * quality;
     
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for simd collapse(2)
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             int value = static_cast<int>((baseTable[i][j] * scale + 50) / 100);

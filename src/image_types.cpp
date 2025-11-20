@@ -4,7 +4,7 @@
 
 using namespace std;
 
-// Реализация RgbImage
+// Ð ÐµÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ RgbImage
 RgbImage::RgbImage(int width, int height) : width(width), height(height) {
     if (width <= 0 || height <= 0) {
         throw invalid_argument("Dimensions must be positive");
@@ -35,7 +35,7 @@ RgbImage RgbImage::createTestImage(int width, int height) {
     RgbImage image(width, height);
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            // Градиент или шахматная доска
+            // Ð“Ñ€Ð°Ð´Ð¸ÐµÐ½Ñ‚ Ð¸Ð»Ð¸ ÑˆÐ°Ñ…Ð¼Ð°Ñ‚Ð½Ð°Ñ Ð´Ð¾ÑÐºÐ°
             unsigned char r = static_cast<unsigned char>(x * 255 / width);
             unsigned char g = static_cast<unsigned char>(y * 255 / height);
             unsigned char b = static_cast<unsigned char>((x + y) % 255);
@@ -45,7 +45,7 @@ RgbImage RgbImage::createTestImage(int width, int height) {
     return image;
 }
 
-// Реализация YCbCrImage
+// Ð ÐµÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ YCbCrImage
 YCbCrImage::YCbCrImage(int width, int height) : width(width), height(height) {
     if (width <= 0 || height <= 0) {
         throw invalid_argument("Dimensions must be positive");
